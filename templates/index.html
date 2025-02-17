@@ -1,0 +1,310 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Elecciones 2025</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/datatables.net-bs5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .progress {
+            height: 25px;
+        }
+        .card {
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            text-align: center;
+            padding: 15px;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .table-container {
+            margin-top: 20px;
+        }
+        footer {
+            background-color: #f8f9fa;
+        }
+
+        .card-body canvas {
+            max-height: 400px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid mt-4">
+        <!-- <h1 class="text-center mb-4">Dashboard Elecciones 2025</h1> -->
+
+        <div class="justify-content-between align-items-center mb-4">
+            <h1 class="text-center">Dashboard Elecciones 2025</h1>
+            <!-- <button id="btn-exportar" class="btn btn-success">
+                <i class="fas fa-file-excel"></i> Exportar a Excel
+            </button> -->
+        </div>
+        
+        <!-- Tarjetas de estadísticas -->
+        <div class="row mb-2">
+            <div class="col-md-3">
+                <div class="card stat-card mb-1">
+                    <h5>Total Sucursales</h5>
+                    <div class="stat-value" id="total-sucursales">-</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card  mb-1">
+                    <h5>Procesadas</h5>
+                    <div class="stat-value text-success" id="sucursales-procesadas">-</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card  mb-1">
+                    <h5>Pendientes</h5>
+                    <div class="stat-value text-warning" id="sucursales-pendientes">-</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card  mb-1">
+                    <h5>Ult. Actualización</h5>
+                    <div class="stat-value" id="ultima-actualizacion" style="font-size: 16px;height: 36px;">-</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container-fluid text-end  p-0 mb-2">
+            <button id="btn-exportar" class="btn btn-success">
+                <i class="fas fa-file-excel"></i> Exportar a Excel
+            </button>
+        </div>
+
+        <!-- Barra de progreso -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Progreso de carga</h5>
+                <div class="progress">
+                    <div id="progress-bar" class="progress-bar" role="progressbar" style="width: 0%">0%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resultados totales -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Resultados Totales</h5>
+                <div class="row">
+                    <div class="col-md-2">
+                        <div class="alert alert-primary">
+                            Lista 1: <span id="total-lista1">-</span>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="alert alert-secondary">
+                            Lista 2: <span id="total-lista2">-</span>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="alert alert-info">
+                            Lista 3: <span id="total-lista3">-</span>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="alert alert-light">
+                            Blancos: <span id="total-blancos">-</span>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="alert alert-warning">
+                            Anulados: <span id="total-anulados">-</span>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="alert alert-danger">
+                            Recurridos: <span id="total-recurridos">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfico de torta -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Distribución de Votos</h5>
+                <div style="height: 400px;">
+                    <canvas id="pieChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de datos -->
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Detalle por Sucursal</h5>
+                <div class="table-container">
+                    <table id="tabla-datos" class="table table-striped table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Sucursal</th>
+                                <th>Estado</th>
+                                <th>Votantes</th>
+                                <th>Lista 1</th>
+                                <th>Lista 2</th>
+                                <th>Lista 3</th>
+                                <th>Blancos</th>
+                                <th>Anulados</th>
+                                <th>Recurridos</th>
+                                <th>Total Votos</th>
+                                <th>% Participación</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/datatables.net/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/datatables.net-bs5/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Inicializar el gráfico de torta
+    let pieChart = new Chart(document.getElementById('pieChart'), {
+        type: 'pie',
+        data: {
+            labels: ['Lista 1', 'Lista 2', 'Lista 3', 'Blancos', 'Anulados', 'Recurridos'],
+            datasets: [{
+                data: [0, 0, 0, 0, 0, 0],
+                backgroundColor: [
+                    'rgba(0, 123, 255, 0.8)',    // Lista 1 - Azul
+                    'rgba(108, 117, 125, 0.8)',  // Lista 2 - Gris
+                    'rgba(23, 162, 184, 0.8)',   // Lista 3 - Cian
+                    'rgba(248, 249, 250, 0.8)',  // Blancos - Blanco
+                    'rgba(255, 193, 7, 0.8)',    // Anulados - Amarillo
+                    'rgba(220, 53, 69, 0.8)'     // Recurridos - Rojo
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right'
+                }
+            }
+        }
+    });
+
+    function actualizarDatos() {
+        console.log('Iniciando actualización de datos...');
+        $.ajax({
+            url: '/api/datos',
+            method: 'GET',
+            success: function(response) {
+                console.log('Datos recibidos:', response);
+                
+                // Actualizar estadísticas
+                $('#total-sucursales').text(response.estadisticas.total_sucursales);
+                $('#sucursales-procesadas').text(response.estadisticas.procesadas);
+                $('#sucursales-pendientes').text(response.estadisticas.pendientes);
+                $('#ultima-actualizacion').text(response.estadisticas.ultima_actualizacion);
+
+                // Actualizar barra de progreso
+                const porcentaje = (response.estadisticas.procesadas / response.estadisticas.total_sucursales * 100).toFixed(1);
+                $('#progress-bar').css('width', porcentaje + '%').text(porcentaje + '%');
+
+                // Actualizar totales
+                $('#total-lista1').text(response.estadisticas.totales.Lista1);
+                $('#total-lista2').text(response.estadisticas.totales.Lista2);
+                $('#total-lista3').text(response.estadisticas.totales.Lista3);
+                $('#total-blancos').text(response.estadisticas.totales.Blanco);
+                $('#total-anulados').text(response.estadisticas.totales.Anulado);
+                $('#total-recurridos').text(response.estadisticas.totales.Recurrido);
+
+                // Actualizar el gráfico de torta
+                pieChart.data.datasets[0].data = [
+                    response.estadisticas.totales.Lista1,
+                    response.estadisticas.totales.Lista2,
+                    response.estadisticas.totales.Lista3,
+                    response.estadisticas.totales.Blanco,
+                    response.estadisticas.totales.Anulado,
+                    response.estadisticas.totales.Recurrido
+                ];
+                pieChart.update();
+
+                // Actualizar tabla
+                const tabla = $('#tabla-datos').DataTable();
+                tabla.clear();
+
+                response.datos.forEach(function(row) {
+                    const participacion = row.CantidadVotantes > 0 ? 
+                        ((row.TotalVotos / row.CantidadVotantes) * 100).toFixed(1) + '%' : 
+                        '0%';
+                    
+                    tabla.row.add([
+                        row.Sucursal,
+                        row.Procesado ? '<span class="badge bg-success">Procesado</span>' : 
+                                    '<span class="badge bg-warning">Pendiente</span>',
+                        row.CantidadVotantes,
+                        row.Lista1,
+                        row.Lista2,
+                        row.Lista3,
+                        row.Blanco,
+                        row.Anulado,
+                        row.Recurrido,
+                        row.TotalVotos,
+                        participacion
+                    ]);
+                });
+
+                tabla.draw();
+            },
+            error: function(xhr, status, error) {
+                console.error('Error al obtener datos:', error);
+                console.error('Status:', status);
+                console.error('Response:', xhr.responseText);
+                alert('Error al cargar los datos. Revisa la consola para más detalles.');
+            }
+        });
+    }
+
+    // Manejador del botón de exportar
+    $('#btn-exportar').click(function() {
+        window.location.href = '/api/exportar-excel';
+    });
+
+    $(document).ready(function() {
+        // Inicializar DataTable
+        $('#tabla-datos').DataTable({
+            language: {
+                url: 'https://cdn.datatables.net/plug-ins/1.10.25/i18n/Spanish.json'
+            },
+            pageLength: 25,
+            order: [[0, 'asc']],
+            dom: '<"mb-3"l><"mb-3"f>rtip'
+        });
+
+        // Cargar datos iniciales
+        actualizarDatos();
+
+        // Actualizar datos cada 5 minutos
+        setInterval(actualizarDatos, 300000);
+    });
+</script>
+
+
+    <footer class="container-fluid text-end py-3 mt-4 border-top">
+        <p class="text-muted mb-0">Developed by Dpto. de Desarrollo y Soporte de Sistemas</p>
+    </footer>
+
+</body>
+</html>
