@@ -1,5 +1,5 @@
 # escrutinio.py
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request, session
 import pyodbc
 import pandas as pd
 from datetime import datetime
@@ -7,9 +7,13 @@ import logging
 from io import BytesIO
 from flask import Flask, render_template, jsonify, send_file
 import json
+import hashlib
 
+# escrutinio = Flask(__name__)
+escrutinio = Flask(__name__, static_url_path='/static')
 
-escrutinio = Flask(__name__)
+# Configurar una clave secreta para las sesiones
+escrutinio.secret_key = 'admin2020'  # Debería ir en variable de entorno
 
 # Configurar logging
 logging.basicConfig(level=logging.DEBUG)
@@ -134,7 +138,7 @@ def exportar_excel():
         logger.debug("Iniciando exportación a Excel")
         conn = get_db_connection()
         
-        # Usar la misma consulta que ya tienes
+        # Usar la misma consulta que ya tengo
         query = """
         SELECT 
             s.Sucursal,
@@ -191,8 +195,98 @@ def exportar_excel():
     finally:
         if 'conn' in locals():
             conn.close()
-            logger.debug("Conexión a base de datos cerrada")            
+            logger.debug("Conexión a base de datos cerrada")
+            
+@escrutinio.route('/api/login', methods=['POST'])
+def login():
+    try:
+        data = request.json
+        username = data.get('username')
+        password = data.get('password')
+        
+        # Hash de la contraseña (asumiendo que en la BD están hasheadas)
+        # hashed_password = hashlib.md5(password.encode()).hexdigest()
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Consulta a la tabla de usuarios
+        query = """
+        SELECT Usuario, Nombre
+        FROM UsuariosElec 
+        WHERE Usuario = ? AND Password = ?
+        """
+        
+        # cursor.execute(query, (username, hashed_password))
+        cursor.execute(query, (username, password))
+        user = cursor.fetchone()
+        
+        if user:
+            # Guardar información del usuario en la sesión
+            session['user'] = {
+                'username': user[0],
+                'nombre': user[1]
+            }
+            return jsonify({
+                'success': True,
+                'user': {
+                    'username': user[0],
+                    'nombre': user[1]
+                }
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Usuario o contraseña incorrectos'
+            }), 401
+            
+    except Exception as e:
+        logger.error(f"Error en login: {str(e)}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if 'conn' in locals():
+            conn.close()
 
+@escrutinio.route('/api/logout')
+def logout():
+    session.pop('user', None)
+    return jsonify({'success': True})
+
+@escrutinio.route('/api/check-session')
+def check_session():
+    if 'user' in session:
+        return jsonify({
+            'logged_in': True,
+            'user': session['user']
+        })
+    return jsonify({'logged_in': False})
+
+@escrutinio.route('/api/borrar-sucursal/<sucursal>', methods=['DELETE'])
+def borrar_sucursal(sucursal):
+    if 'user' not in session:
+        return jsonify({'error': 'No autorizado'}), 401
+        
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Borrar el registro
+        query = "DELETE FROM Elecciones2025 WHERE Sucursal = ?"
+        cursor.execute(query, (sucursal,))
+        conn.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Sucursal {sucursal} eliminada correctamente'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error al borrar sucursal: {str(e)}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if 'conn' in locals():
+            conn.close()            
+            
 if __name__ == '__main__':
     # escrutinio.run(debug=True)
     escrutinio.run(host='0.0.0.0', port=5000, debug=True)
