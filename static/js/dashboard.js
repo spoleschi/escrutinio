@@ -42,28 +42,6 @@ function checkSession() {
         });
 }
 
-// function showLoggedInUser(user) {
-//     console.log('Mostrando usuario logueado:', user);
-
-//     // Ocultar el modal de login de forma segura
-//     $('#loginModal').modal('hide');  // Oculta el modal si está abierto
-//     $('body').removeClass('modal-open'); // Elimina la clase que bloquea el fondo
-//     $('.modal-backdrop').remove(); // Borra el fondo oscurecido
-
-//     $('#userName').text(user.nombre);
-//     $('#userInfo').removeClass('d-none');
-//     $('#btnLogin').addClass('d-none');
-//     $('#btnLogout').removeClass('d-none');
-//     $('#loginModal').modal('hide');
-    
-//     // Forzar la actualización de la tabla
-//     const tabla = $('#tabla-datos').DataTable();
-//     console.log('Columna visible antes:', tabla.column(-1).visible());
-//     tabla.column(-1).visible(true);
-//     console.log('Columna visible después:', tabla.column(-1).visible());
-//     tabla.draw();
-// }
-
 function showLoggedInUser(user) {
     console.log('Mostrando usuario logueado:', user);
 
@@ -199,20 +177,13 @@ $(document).ready(function() {
     
     // Inicializar DataTable
 
-    // $.getScript("https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js")
-    // .done(function() {
-    //     console.log("Bootstrap cargado correctamente");
-    // })
-    // .fail(function() {
-    //     console.error("Error cargando Bootstrap");
-    // });
-
     $('#tabla-datos').DataTable({
         language: {
             url: 'https://cdn.datatables.net/plug-ins/1.10.25/i18n/Spanish.json'
         },
         pageLength: 25,
         order: [[0, 'asc']],
+        dom: '<"mb-3"l><"mb-3"f>rtip',  // mb-3 para margin-bottom
         columns: [
             { title: 'Sucursal' },
             { title: 'Estado' },
