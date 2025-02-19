@@ -50,7 +50,8 @@ def get_db_connection():
 
 @escrutinio.route('/')
 def index():
-    return render_template('index.html')
+    logger.debug("Renderizando index.html")
+    return render_template('index.html')    
 
 @escrutinio.route('/api/datos')
 def get_datos():
@@ -285,8 +286,15 @@ def borrar_sucursal(sucursal):
         return jsonify({'error': str(e)}), 500
     finally:
         if 'conn' in locals():
-            conn.close()            
+            conn.close()
             
+@escrutinio.route('/api/debug-session')
+def debug_session():
+    return jsonify({
+        'session': dict(session),
+        'user_in_session': 'user' in session
+    })            
+
 if __name__ == '__main__':
     # escrutinio.run(debug=True)
     escrutinio.run(host='0.0.0.0', port=5000, debug=True)
