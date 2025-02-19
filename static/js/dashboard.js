@@ -42,21 +42,58 @@ function checkSession() {
         });
 }
 
+// function showLoggedInUser(user) {
+//     console.log('Mostrando usuario logueado:', user);
+
+//     // Ocultar el modal de login de forma segura
+//     $('#loginModal').modal('hide');  // Oculta el modal si está abierto
+//     $('body').removeClass('modal-open'); // Elimina la clase que bloquea el fondo
+//     $('.modal-backdrop').remove(); // Borra el fondo oscurecido
+
+//     $('#userName').text(user.nombre);
+//     $('#userInfo').removeClass('d-none');
+//     $('#btnLogin').addClass('d-none');
+//     $('#btnLogout').removeClass('d-none');
+//     $('#loginModal').modal('hide');
+    
+//     // Forzar la actualización de la tabla
+//     const tabla = $('#tabla-datos').DataTable();
+//     console.log('Columna visible antes:', tabla.column(-1).visible());
+//     tabla.column(-1).visible(true);
+//     console.log('Columna visible después:', tabla.column(-1).visible());
+//     tabla.draw();
+// }
+
 function showLoggedInUser(user) {
     console.log('Mostrando usuario logueado:', user);
+
+    // Ocultar modal de login
+    $('#loginModal').modal('hide');
+
+    setTimeout(() => {
+        // 🔥 Restaurar el desplazamiento
+        $('body').removeClass('modal-open'); // Eliminar clase de bloqueo
+        $('.modal-backdrop').remove(); // Eliminar el fondo oscuro del modal
+        $('body, html').css({
+            'overflow': 'auto', // Habilitar el scroll
+            'height': 'auto' // Ajustar altura de la página
+        });
+
+        console.log("Scroll restaurado");
+    }, 300); // Esperar a que el modal termine de cerrarse
+
+    // Actualizar UI
     $('#userName').text(user.nombre);
     $('#userInfo').removeClass('d-none');
     $('#btnLogin').addClass('d-none');
     $('#btnLogout').removeClass('d-none');
-    $('#loginModal').modal('hide');
-    
-    // Forzar la actualización de la tabla
+
+    // Actualizar la tabla de datos
     const tabla = $('#tabla-datos').DataTable();
-    console.log('Columna visible antes:', tabla.column(-1).visible());
     tabla.column(-1).visible(true);
-    console.log('Columna visible después:', tabla.column(-1).visible());
     tabla.draw();
 }
+
 
 function showLoggedOutState() {
     console.log('Mostrando estado deslogueado');
@@ -157,8 +194,19 @@ function actualizarDatos() {
 // Event Handlers
 $(document).ready(function() {
     console.log('Inicializando aplicación...');
+
+    console.log(typeof bootstrap);
     
     // Inicializar DataTable
+
+    // $.getScript("https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js")
+    // .done(function() {
+    //     console.log("Bootstrap cargado correctamente");
+    // })
+    // .fail(function() {
+    //     console.error("Error cargando Bootstrap");
+    // });
+
     $('#tabla-datos').DataTable({
         language: {
             url: 'https://cdn.datatables.net/plug-ins/1.10.25/i18n/Spanish.json'
@@ -219,10 +267,10 @@ $('#btnSubmitLogin').click(function() {
                 $('#loginForm')[0].reset();
                 $('#loginError').addClass('d-none');
 
-                // Agregar un pequeño retraso y recargar la página
-                setTimeout(function() {
-                    location.reload();
-                }, 500);  // 500ms de espera antes de recargar
+                // // Agregar un pequeño retraso y recargar la página
+                // setTimeout(function() {
+                //     location.reload();
+                // }, 500);  // 500ms de espera antes de recargar
             }
         },
         error: function(xhr) {
