@@ -9,10 +9,14 @@ from flask import send_file
 import json
 import hashlib
 
+import threading
+import time
+import subprocess
+
 escrutinio = Flask(__name__, static_url_path='/static')
 
 # Configurar una clave secreta para las sesiones
-# escrutinio.secret_key = 'admin2020'  # Debería ir en una variable de entorno
+escrutinio.secret_key = 'admin2020'  # Debería ir en una variable de entorno
 
 # Configurar logging
 logging.basicConfig(level=logging.DEBUG)
@@ -57,7 +61,7 @@ def exportar_excel():
         logger.debug("Iniciando exportación a Excel")
         conn = get_db_connection()
         
-        # Consulta adaptada a la nueva estructura de datos
+        # Consulta adaptada para incluir solo las sucursales cargadas
         query = """
         SELECT 
             s.Sucursal,
@@ -71,7 +75,7 @@ def exportar_excel():
             COALESCE(e.Total, 0) as TotalVotos
         FROM 
             Sucursales s
-            LEFT JOIN Elecciones2025 e ON s.Sucursal = e.Cod_Ubic
+            INNER JOIN Elecciones2025 e ON s.Sucursal = e.Cod_Ubic
         ORDER BY 
             s.Sucursal
         """
@@ -86,8 +90,28 @@ def exportar_excel():
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             df.to_excel(writer, sheet_name='Resultados', index=False)
             
-            # Ajustar el ancho de las columnas
+            # Obtener el worksheet
             worksheet = writer.sheets['Resultados']
+            
+            # Configurar opciones de impresión para mostrar líneas de división
+            worksheet.print_gridlines = True
+            worksheet.print_options.gridLines = True
+            
+            # Importar módulos necesarios para configuración de página
+            from openpyxl.worksheet.page import PageMargins
+            from openpyxl.worksheet.properties import PageSetupProperties
+            
+            # Establecer orientación horizontal (landscape)
+            worksheet.page_setup.orientation = worksheet.ORIENTATION_LANDSCAPE
+            
+            # Configurar márgenes (en pulgadas - 1 cm ≈ 0.3937 pulgadas)
+            worksheet.page_margins = PageMargins(left=0.3937, right=0.3937, top=0.75, bottom=0.75, header=0.3, footer=0.3)
+            
+            # Agregar encabezado con título y fecha/hora
+            current_time = datetime.now().strftime('%d/%m/%Y %H:%M')
+            worksheet.oddHeader.center.text = "Escrutinio provisorio\n" + current_time
+            
+            # Ajustar el ancho de las columnas
             for idx, col in enumerate(df.columns):
                 max_length = max(df[col].astype(str).apply(len).max(), len(col)) + 2
                 worksheet.column_dimensions[chr(65 + idx)].width = max_length
@@ -207,25 +231,6 @@ def get_datos():
             s.Sucursal
         """
         
-        # # Consulta adaptada para incluir solo las sucursales cargadas
-        # query = """
-        # SELECT 
-        #     s.Sucursal,
-        #     s.Cantidad as CantidadVotantes,
-        #     COALESCE(e.Lista_Blanca, 0) as Lista_Blanca,
-        #     COALESCE(e.Lista_Celeste, 0) as Lista_Celeste,
-        #     COALESCE(e.En_Blanco, 0) as En_Blanco,
-        #     COALESCE(e.Anulados, 0) as Anulados,
-        #     COALESCE(e.Recurridos, 0) as Recurridos,
-        #     COALESCE(e.Observados, 0) as Observados,
-        #     COALESCE(e.Total, 0) as TotalVotos
-        # FROM 
-        #     Sucursales s
-        #     INNER JOIN Elecciones2025 e ON s.Sucursal = e.Cod_Ubic
-        # ORDER BY 
-        #     s.Sucursal
-        # """
-        
         
         logger.debug(f"Ejecutando query: {query}")
         df = pd.read_sql(query, conn)
@@ -299,6 +304,108 @@ def borrar_sucursal(sucursal):
     finally:
         if 'conn' in locals():
             conn.close()
+
+@escrutinio.route('/api/guardar-votos', methods=['POST'])
+def guardar_votos():
+    if 'user' not in session:
+        return jsonify({'error': 'No autorizado'}), 401
+        
+    try:
+        data = request.json
+        sucursal = data.get('sucursal')
+        
+        if not sucursal:
+            return jsonify({'error': 'Falta el ID de la sucursal'}), 400
+            
+        # Extraer los datos de votos
+        lista_blanca = data.get('Lista_Blanca', 0)
+        lista_celeste = data.get('Lista_Celeste', 0)
+        en_blanco = data.get('En_Blanco', 0)
+        anulados = data.get('Anulados', 0)
+        recurridos = data.get('Recurridos', 0)
+        observados = data.get('Observados', 0)
+        total = data.get('Total', 0)
+        
+        # Validar que el total sea correcto
+        calculado = lista_blanca + lista_celeste + en_blanco + anulados + recurridos + observados
+        if calculado != total:
+            return jsonify({'error': f'La suma de votos ({calculado}) no coincide con el total ({total})'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Verificar si la sucursal ya existe en la tabla de Elecciones2025
+        query_check = "SELECT COUNT(*) FROM Elecciones2025 WHERE Cod_Ubic = ?"
+        cursor.execute(query_check, (sucursal,))
+        existe = cursor.fetchone()[0] > 0
+        
+        if existe:
+            # Actualizar registro existente
+            query = """
+            UPDATE Elecciones2025
+            SET Lista_Blanca = ?,
+                Lista_Celeste = ?,
+                En_Blanco = ?,
+                Anulados = ?,
+                Recurridos = ?,
+                Observados = ?,
+                Total = ?
+            WHERE Cod_Ubic = ?
+            """
+            cursor.execute(query, (
+                lista_blanca, lista_celeste, en_blanco, anulados, 
+                recurridos, observados, total, sucursal
+            ))
+            
+            logger.info(f"Actualizada la sucursal {sucursal} en la tabla Elecciones2025")
+        else:
+            # Insertar nuevo registro
+            query = """
+            INSERT INTO Elecciones2025 (Cod_Ubic, Lista_Blanca, Lista_Celeste, En_Blanco, Anulados, Recurridos, Observados, Total)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """
+            cursor.execute(query, (
+                sucursal, lista_blanca, lista_celeste, en_blanco, anulados, 
+                recurridos, observados, total
+            ))
+            
+            logger.info(f"Insertada la sucursal {sucursal} en la tabla Elecciones2025")
+        
+        # Confirmar los cambios
+        conn.commit()
+        
+        # Registrar la acción en un log
+        usuario = session['user']['username']
+        accion = "actualización" if existe else "inserción"
+        logger.info(f"Usuario {usuario} realizó {accion} de datos para sucursal {sucursal}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Datos para la sucursal {sucursal} guardados correctamente'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error en guardar_votos: {str(e)}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if 'conn' in locals():
+            conn.close()            
+
+# def ejecutar_procesar_emails():
+#     while True:
+#         try:
+#             # Ejecutar el script procesar_emails_optimizado2.py
+#             subprocess.run(['python', 'procesar_emails_optimizado2.py'], check=True)
+#             logger.info("Script procesar_emails_optimizado2.py ejecutado correctamente.")
+#         except Exception as e:
+#             logger.error(f"Error al ejecutar procesar_emails_optimizado2.py: {str(e)}")
+        
+#         # Esperar 5 minutos antes de la próxima ejecución
+#         time.sleep(300)
+
+# # Iniciar el hilo en segundo plano
+# thread = threading.Thread(target=ejecutar_procesar_emails, daemon=True)
+# thread.start()
 
 if __name__ == '__main__':
     escrutinio.run(host='0.0.0.0', port=5000, debug=True)

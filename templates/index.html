@@ -91,6 +91,59 @@
         </div>
     </div>
 
+    <!-- Modal para cargar datos de votación -->
+    <div class="modal fade" id="cargarVotosModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Cargar resultados de votación</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger d-none" id="cargarError"></div>
+                    <form id="cargarVotosForm">
+                        <input type="hidden" id="sucursalId">
+                        <div class="mb-3">
+                            <label class="form-label">Sucursal: <span id="nombreSucursal" class="fw-bold"></span></label>
+                        </div>
+                        <div class="mb-3">
+                            <label for="listaBlanca" class="form-label">Lista Blanca</label>
+                            <input type="number" class="form-control votos-input" id="listaBlanca" min="0" value="0" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="listaCeleste" class="form-label">Lista Celeste</label>
+                            <input type="number" class="form-control votos-input" id="listaCeleste" min="0" value="0" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="enBlanco" class="form-label">En Blanco</label>
+                            <input type="number" class="form-control votos-input" id="enBlanco" min="0" value="0" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="anulados" class="form-label">Anulados</label>
+                            <input type="number" class="form-control votos-input" id="anulados" min="0" value="0" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="recurridos" class="form-label">Recurridos</label>
+                            <input type="number" class="form-control votos-input" id="recurridos" min="0" value="0" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="observados" class="form-label">Observados</label>
+                            <input type="number" class="form-control votos-input" id="observados" min="0" value="0" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="totalVotos" class="form-label">Total de Votos</label>
+                            <input type="number" class="form-control" id="totalVotos" min="0" value="0" readonly>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btnSubmitCargar">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="container-fluid mt-4">
         <div class="justify-content-between align-items-center mb-4">
             <h1 class="text-center">Dashboard Elecciones 2025</h1>
@@ -193,6 +246,18 @@
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">Detalle por Sucursal</h5>
+
+                <div class="container-fluid text-end p-0 mb-2 d-flex justify-content-between">
+                    <div class="d-flex align-items-center">
+                        <label for="filtro-sucursales" class="me-2">Filtrar:</label>
+                        <select id="filtro-sucursales" class="form-select form-select-sm" style="width: 190px;">
+                            <option value="todas">Todas las sucursales</option>
+                            <option value="cargadas">Sucursales cargadas</option>
+                            <option value="faltantes">Sucursales faltantes</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="table-container">
                     <table id="tabla-datos" class="table table-striped table-bordered">
                         <thead>
@@ -227,6 +292,7 @@
 
     <footer class="container-fluid text-end py-3 mt-4 border-top">
         <p class="text-muted mb-0">Developed by Dpto. de Desarrollo y Soporte de Sistemas</p>
+        <p class="text-muted mb-0">Caja de Jubilaciones, Subsidios y Pensiones del personal del BAPRO</p>
     </footer>
 </body>
 </html>
